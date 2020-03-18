@@ -14,11 +14,27 @@ func PolyNormalized(p *common.Poly) bool {
 	return p2 == *p
 }
 
+func BenchmarkVerify(b *testing.B) {
+	var seed [32]byte
+	var msg [8]byte
+	var sig [SignatureSize]byte
+	pk, sk := NewKeyFromSeed(&seed)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		binary.LittleEndian.PutUint64(msg[:], uint64(i))
+		SignTo(sk, msg[:], sig[:])
+		b.StartTimer()
+		Verify(pk, msg[:], sig[:])
+	}
+}
+
 func BenchmarkSign(b *testing.B) {
 	var seed [32]byte
 	var msg [8]byte
 	var sig [SignatureSize]byte
 	_, sk := NewKeyFromSeed(&seed)
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		binary.LittleEndian.PutUint64(msg[:], uint64(i))
 		SignTo(sk, msg[:], sig[:])
