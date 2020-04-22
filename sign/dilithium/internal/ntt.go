@@ -7,6 +7,15 @@ package internal
 //
 // where zeta = 1753, brv(i) is the bitreversal of a 8-bit number
 // and R=2^32 mod q.
+//
+// The following Python code generates the Zetas (and InvZetas) lists:
+//
+//    q = 2**23 - 2**13 + 1; zeta = 1753
+//    R = 2**32 % q # Montgomery const.
+//    def brv(x): return int(''.join(reversed(bin(x)[2:].zfill(8))),2)
+//    def inv(x): return pow(x, q-2, q) # inverse in F(q)
+//    print([(pow(zeta, brv(i), q)*R)%q for i in range(256)])
+//    print([(pow(inv(zeta), -(brv(255-i)-256), q)*R)%q for i in range(256)])
 var Zetas = [N]uint32{
 	4193792, 25847, 5771523, 7861508, 237124, 7602457, 7504169,
 	466468, 1826347, 2353451, 8021166, 6288512, 3119733, 5495562,
