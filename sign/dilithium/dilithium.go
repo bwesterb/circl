@@ -51,7 +51,7 @@ var (
 // ModeNames returns the list of supported modes.
 func ModeNames() []string {
 	names := []string{}
-	for name, _ := range modes {
+	for name := range modes {
 		names = append(names, name)
 	}
 	return names
@@ -59,6 +59,5 @@ func ModeNames() []string {
 
 // ModeByName returns the mode with the given name or nil when not supported.
 func ModeByName(name string) mode.Mode {
-	mode, _ := modes[name]
-	return mode
+	return modes[name]
 }
