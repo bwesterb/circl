@@ -2,7 +2,7 @@
 // as submitted to round2 of the NIST PQC competition and described in
 //
 // https://pq-crystals.org/dilithium/data/dilithium-specification-round2.pdf
-package mode4aes
+package mode4
 
 import (
 	"errors"
