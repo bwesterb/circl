@@ -138,15 +138,33 @@ func (p *Poly) NTT() {
 	//    |---> ( a mod x^64 - z^64, a mod x^64 + z^64,
 	//            a mod x^64 - z^192, a mod x^64 + z^192 )
 	//       et cetera
+	//
+	// If N was 8 then this can be pictured in the following diagram:
+	//
+	//  https://cnx.org/resources/17ee4dfe517a6adda05377b25a00bf6e6c93c334/File0026.png
+	//
+	// Each cross is a Cooley--Tukey butterfly: it's the map
+	//
+	//      (a, b) |--> (a + ζ, a - ζ)
+	//
+	// for the appropriate ζ for that column and row group.
 
 	k := 0 // Index into Zetas
 
+	// l runs effectively over the columns in the diagram above; it is
+	// half the height of a row group, i.e. the number of butterflies in
+	// each row group.  In the diagram above it would be 4, 2, 1.
 	for l := uint(N / 2); l > 0; l >>= 1 {
 		// On the n-th iteration of the l-loop, the coefficients start off
 		// bounded by n*2*Q.
+		//
+		// offset effectively loops over the row groups in this column; it
+		// is the first row in the row group.
 		for offset := uint(0); offset < N-l; offset += 2 * l {
 			k++
 			zeta := uint64(Zetas[k])
+
+			// j loops over each butterfly in the row group.
 			for j := offset; j < offset+l; j++ {
 				t := montReduceLe2Q(zeta * uint64(p[j+l]))
 				p[j+l] = p[j] + (2*Q - t) // Cooley--Tukey butterfly
@@ -166,7 +184,7 @@ func (p *Poly) InvNTT() {
 
 	// We basically do the opposite of NTT, but postpone dividing by 2 in the
 	// inverse of the Cooley--Tukey butterfly and accumulate that to a big
-	// division by 2^8 at the end.
+	// division by 2^8 at the end.  See comments in the NTT() function.
 
 	for l := uint(1); l < N; l <<= 1 {
 		// On the n-th iteration of the l-loop, the coefficients start off
