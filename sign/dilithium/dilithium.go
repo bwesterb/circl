@@ -11,7 +11,6 @@
 // If your choice for mode is fixed compile-time, use the subpackages.
 // This package provides a convenient wrapper around all of the subpackages
 // so one can be chosen at runtime.
-
 package dilithium
 
 import (
