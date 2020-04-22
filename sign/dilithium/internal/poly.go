@@ -3,7 +3,7 @@ package internal
 // An element of our base ring R which are polynomials over Z_q modulo
 // the equation X^N = -1, where q=2^23 - 2^13 + 1 and N=256.
 //
-// Coefficients aren't always reduced.  See Freeze()
+// Coefficients aren't always reduced.  See Normalize()
 type Poly [N]uint32
 
 // Reduces each of the coefficients to <2q.
@@ -89,7 +89,7 @@ func (p *Poly) Power2Round(p0PlusQ, p1 *Poly) {
 	}
 }
 
-// Sets p to the hint polynomail for low part p0 and high part p1.
+// Sets p to the hint polynomial for low part p0 and high part p1.
 //
 // Returns the number of ones in the hint vector.
 func (p *Poly) MakeHint(p0, p1 *Poly) (pop uint32) {

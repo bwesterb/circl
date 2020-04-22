@@ -1,6 +1,7 @@
 package internal
 
-// Returns y with y < 2q and y = x mod q.
+// Returns a y with y < 2q and y = x mod q.
+// Note that in general *not*: reduceLe2Q(reduceLe2Q(x)) == x.
 func reduceLe2Q(x uint32) uint32 {
 	// Note 2^23 = 2^13 - 1 mod q. So, writing  x = x1 2^23 + x2 with x2 < 2^23
 	// and x1 < 2^9, we have x = y (mod q) where

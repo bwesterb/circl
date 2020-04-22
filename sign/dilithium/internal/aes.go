@@ -13,15 +13,15 @@ type AesStream struct {
 	nonce   uint16
 }
 
-// Create a new AesStream as a replacement of SHAKE128.  (Well... it's not
-// replaced consistently.)
+// Create a new AesStream as a replacement of SHAKE128.  (Note that
+// not all occurences of SHAKE are replaced by AES in the AES-variants.)
 func NewAesStream128(key *[32]byte, nonce uint16) AesStream {
 	c, _ := aes.NewCipher(key[:])
 	return AesStream{c: c, nonce: nonce}
 }
 
-// Create a new AesStream as a replacement of SHAKE256.  (Well... it's not
-// replaced consistently.)
+// Create a new AesStream as a replacement of SHAKE256.  (Note that
+// not all occurences of SHAKE are replaced by AES in the AES-variants.)
 //
 // Yes, in an AES mode, Dilithium throws away the last 16 bytes of a seed ...
 // See the remark at the end of the caption of Figure 4 in the Round 2 spec.

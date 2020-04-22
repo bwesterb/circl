@@ -7,7 +7,7 @@ import (
 
 func TestModQ(t *testing.T) {
 	for i := 0; i < 1000; i++ {
-		x := uint32(rand.Int31())
+		x := rand.Uint32()
 		y := modQ(x)
 		if y > Q {
 			t.Fatalf("modQ(%d) > Q", x)
@@ -20,13 +20,13 @@ func TestModQ(t *testing.T) {
 
 func TestReduceLe2Q(t *testing.T) {
 	for i := 0; i < 1000; i++ {
-		x := uint32(rand.Int31())
+		x := rand.Uint32()
 		y := reduceLe2Q(x)
 		if y > 2*Q {
-			t.Fatalf("recuce_le2q(%d) > 2Q", x)
+			t.Fatalf("reduce_le2q(%d) > 2Q", x)
 		}
 		if y%Q != x%Q {
-			t.Fatalf("recuce_le2q(%d) != %d (mod Q)", x, x)
+			t.Fatalf("reduce_le2q(%d) != %d (mod Q)", x, x)
 		}
 	}
 }

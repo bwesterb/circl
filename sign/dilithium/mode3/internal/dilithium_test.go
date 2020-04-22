@@ -44,6 +44,7 @@ func BenchmarkSign(b *testing.B) {
 func BenchmarkGenerateKey(b *testing.B) {
 	var seed [32]byte
 	for i := 0; i < b.N; i++ {
+		binary.LittleEndian.PutUint64(seed[:], uint64(i))
 		NewKeyFromSeed(&seed)
 	}
 }

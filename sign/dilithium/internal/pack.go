@@ -166,7 +166,7 @@ func (p *Poly) PackB60(buf []byte) {
 	}
 }
 
-// Sets p to the polynomial packed into buf with Poly.PackB60().
+// UnpackB60 sets p to the polynomial packed into buf with Poly.PackB60().
 //
 // Returns whether unpacking was successful.
 func (p *Poly) UnpackB60(buf []byte) bool {
@@ -176,7 +176,7 @@ func (p *Poly) UnpackB60(buf []byte) bool {
 		(uint64(buf[36]) << 32) | (uint64(buf[37]) << 40) |
 		(uint64(buf[38]) << 48) | (uint64(buf[39]) << 56))
 	if signs>>60 != 0 {
-		return false // ensure unusud bits are zero for strong unforgeability
+		return false // ensure unused bits are zero for strong unforgeability
 	}
 
 	for i := 0; i < 32; i++ {
