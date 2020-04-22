@@ -109,7 +109,7 @@ func (sk *PrivateKey) MarshalBinary() ([]byte, error) {
 // Unpacks the public key from data.
 func (pk *PublicKey) UnmarshalBinary(data []byte) error {
 	if len(data) != PublicKeySize {
-		return errors.New("packed public key must be of PublicKeySize bytes")
+		return errors.New("packed public key must be of mode4.PublicKeySize bytes")
 	}
 	var buf [PublicKeySize]byte
 	copy(buf[:], data)
@@ -120,7 +120,7 @@ func (pk *PublicKey) UnmarshalBinary(data []byte) error {
 // Unpacks the private key from data.
 func (sk *PrivateKey) UnmarshalBinary(data []byte) error {
 	if len(data) != PrivateKeySize {
-		return errors.New("packed private key must be of PrivateKeySize bytes")
+		return errors.New("packed private key must be of mode4.PrivateKeySize bytes")
 	}
 	var buf [PrivateKeySize]byte
 	copy(buf[:], data)
