@@ -1,5 +1,3 @@
-// +build amd64,go1.12
-
 package fourq
 
 import (
@@ -9,6 +7,13 @@ import (
 
 	"github.com/cloudflare/circl/internal/test"
 )
+
+type tFpAdd = func(z, x, y *Fp)
+type tFpSub = func(z, x, y *Fp)
+type tFpMul = func(z, x, y *Fp)
+type tFpSqr = func(z, x *Fp)
+type tFpHlf = func(z, x *Fp)
+type tFpModp = func(z *Fp)
 
 func getModulus() *big.Int {
 	p := big.NewInt(1)
@@ -97,7 +102,7 @@ func TestFpIsZero(t *testing.T) {
 	}
 }
 
-func TestFpModp(t *testing.T) {
+func testFpModp(t *testing.T, f tFpModp) {
 	const testTimes = 1 << 9
 	P := getModulus()
 	x := &Fp{}
@@ -105,7 +110,7 @@ func TestFpModp(t *testing.T) {
 	// Verifying x=P goes to 0
 	bigX.Set(P)
 	x.setBigInt(&bigX)
-	fpMod(x)
+	f(x)
 	got := x.toBigInt()
 	want := big.NewInt(0)
 	if got.Cmp(want) != 0 {
@@ -115,7 +120,7 @@ func TestFpModp(t *testing.T) {
 	// Verifying x=P+1 goes to 1
 	bigX.Add(P, big.NewInt(1))
 	x.setBigInt(&bigX)
-	fpMod(x)
+	f(x)
 	got = x.toBigInt()
 	want = big.NewInt(1)
 	if got.Cmp(want) != 0 {
@@ -156,7 +161,7 @@ func TestFpNeg(t *testing.T) {
 	}
 }
 
-func TestFpHlf(t *testing.T) {
+func testFpHlf(t *testing.T, f tFpHlf) {
 	const testTimes = 1 << 9
 	P := getModulus()
 	x, z := &Fp{}, &Fp{}
@@ -166,7 +171,7 @@ func TestFpHlf(t *testing.T) {
 		bigX, _ := rand.Int(rand.Reader, P)
 
 		x.setBigInt(bigX)
-		fpHlf(z, x)
+		f(z, x)
 		got := z.toBigInt()
 
 		want := bigX.Mul(bigX, invTwo)
@@ -177,7 +182,7 @@ func TestFpHlf(t *testing.T) {
 	}
 }
 
-func TestFpAdd(t *testing.T) {
+func testFpAdd(t *testing.T, f tFpAdd) {
 	const testTimes = 1 << 9
 	P := getModulus()
 	x, y, z := &Fp{}, &Fp{}, &Fp{}
@@ -187,7 +192,7 @@ func TestFpAdd(t *testing.T) {
 
 		x.setBigInt(bigX)
 		y.setBigInt(bigY)
-		fpAdd(z, x, y)
+		f(z, x, y)
 		got := z.toBigInt()
 
 		want := bigX.Add(bigX, bigY)
@@ -198,7 +203,7 @@ func TestFpAdd(t *testing.T) {
 	}
 }
 
-func TestFpSub(t *testing.T) {
+func testFpSub(t *testing.T, f tFpSub) {
 	const testTimes = 1 << 9
 	P := getModulus()
 	x, y, z := &Fp{}, &Fp{}, &Fp{}
@@ -208,7 +213,7 @@ func TestFpSub(t *testing.T) {
 
 		x.setBigInt(bigX)
 		y.setBigInt(bigY)
-		fpSub(z, x, y)
+		f(z, x, y)
 		got := z.toBigInt()
 
 		want := bigX.Sub(bigX, bigY)
@@ -219,7 +224,7 @@ func TestFpSub(t *testing.T) {
 	}
 }
 
-func TestFpMul(t *testing.T) {
+func testFpMul(t *testing.T, f tFpMul) {
 	const testTimes = 1 << 9
 	P := getModulus()
 	x, y, z := &Fp{}, &Fp{}, &Fp{}
@@ -229,7 +234,7 @@ func TestFpMul(t *testing.T) {
 
 		x.setBigInt(bigX)
 		y.setBigInt(bigY)
-		fpMul(z, x, y)
+		f(z, x, y)
 		got := z.toBigInt()
 
 		want := bigX.Mul(bigX, bigY)
@@ -240,7 +245,7 @@ func TestFpMul(t *testing.T) {
 	}
 }
 
-func TestFpSqr(t *testing.T) {
+func testFpSqr(t *testing.T, f tFpSqr) {
 	const testTimes = 1 << 9
 	P := getModulus()
 	x, z := &Fp{}, &Fp{}
@@ -248,7 +253,7 @@ func TestFpSqr(t *testing.T) {
 		bigX, _ := rand.Int(rand.Reader, P)
 
 		x.setBigInt(bigX)
-		fpSqr(z, x)
+		f(z, x)
 		got := z.toBigInt()
 
 		want := bigX.Mul(bigX, bigX)
@@ -276,6 +281,24 @@ func TestFpInv(t *testing.T) {
 			test.ReportError(t, got, want, x)
 		}
 	}
+}
+
+func TestFpGeneric(t *testing.T) {
+	t.Run("Add", func(t *testing.T) { testFpAdd(t, fpAddGeneric) })
+	t.Run("Sub", func(t *testing.T) { testFpSub(t, fpSubGeneric) })
+	t.Run("Mul", func(t *testing.T) { testFpMul(t, fpMulGeneric) })
+	t.Run("Sqr", func(t *testing.T) { testFpSqr(t, fpSqrGeneric) })
+	t.Run("Hlf", func(t *testing.T) { testFpHlf(t, fpHlfGeneric) })
+	t.Run("Modp", func(t *testing.T) { testFpModp(t, fpModGeneric) })
+}
+
+func TestFpNative(t *testing.T) {
+	t.Run("Add", func(t *testing.T) { testFpAdd(t, fpAdd) })
+	t.Run("Sub", func(t *testing.T) { testFpSub(t, fpSub) })
+	t.Run("Mul", func(t *testing.T) { testFpMul(t, fpMul) })
+	t.Run("Sqr", func(t *testing.T) { testFpSqr(t, fpSqr) })
+	t.Run("Hlf", func(t *testing.T) { testFpHlf(t, fpHlf) })
+	t.Run("Modp", func(t *testing.T) { testFpModp(t, fpMod) })
 }
 
 func BenchmarkFp(b *testing.B) {

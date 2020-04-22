@@ -8,7 +8,7 @@
     _fpSub( 0+c, 0+a, 0+b) \
     _fpSub(16+c,16+a,16+b)
 
-#define _fqMul(c, a, b) \
+#define _fqMulBmi2(c, a, b) \
     \ // T0 = a0 * b0, R11:R10:R9:R8 <- 0+ra:8+ra * 0+rb:8+rb
     MOVQ 0+b, DX \
     MULXQ 0+a, R8, R9 \
@@ -106,7 +106,35 @@
     MOVQ R8, 16+c \
     MOVQ R9, 24+c
 
-#define _fqSqr(c,a) \
+#define _fqMulLeg(c, a, b) \
+    _fpMulLeg(R10, R9, R8, 0+a, 0+b) \
+    _fpMulLeg(R13,R12,R11,16+a,16+b) \
+    MOVQ  $0,R14 \
+    SUBQ R11, R8 \
+    SBBQ R12, R9 \
+    SBBQ R13,R10 \
+    SBBQ  $0,R14 \
+    SHLQ  $1,R10 \
+    BTRQ $63, R9 \
+    ADCQ R10, R8 \
+    ADCQ R14, R9 \
+    MOVQ R8, R14 \
+    MOVQ R9, R15 \
+    _fpMulLeg(R10, R9, R8, 0+a,16+b) \
+    _fpMulLeg(R13,R12,R11,16+a, 0+b) \
+    ADDQ R11, R8 \
+    ADCQ R12, R9 \
+    ADCQ R13,R10 \
+    SHLQ  $1,R10 \
+    BTRQ $63, R9 \
+    ADCQ R10, R8 \
+    ADCQ  $0, R9 \
+    MOVQ R14, 0+c \
+    MOVQ R15, 8+c \
+    MOVQ  R8,16+c \
+    MOVQ  R9,24+c
+
+#define _fqSqrBmi2(c,a) \
     \ // t0 = R9:R8 = a0 + a1, R14:CX = a1
     MOVQ 0+a, R10 \
     MOVQ 16+a, R14 \
@@ -184,3 +212,5 @@
     ADCQ $0, R11 \
     MOVQ R10, 16+c \
     MOVQ R11, 24+c
+
+#define _fqSqrLeg(c,a) _fqMulLeg(c,a,a)

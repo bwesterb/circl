@@ -222,22 +222,18 @@ func TestToBytes(t *testing.T) {
 	var got, want [Size]byte
 	for i := 0; i < numTests; i++ {
 		_, _ = rand.Read(x[:])
-		ToBytes(got[:], &x)
+		err := ToBytes(got[:], &x)
 		conv.BigInt2BytesLe(want[:], conv.BytesLe2BigInt(x[:]))
 
-		if got != want {
+		if err != nil || got != want {
 			test.ReportError(t, got, want, x)
 		}
 	}
-	var small [Size + 1]byte
-	defer func() {
-		if r := recover(); r == nil {
-			got := r
-			want := "should panic!"
-			test.ReportError(t, got, want)
-		}
-	}()
-	ToBytes(small[:], &x)
+	var largeSlice [Size + 1]byte
+	err := ToBytes(largeSlice[:], &x)
+	if err == nil {
+		test.ReportError(t, got, want, largeSlice)
+	}
 }
 
 func TestString(t *testing.T) {
@@ -295,6 +291,50 @@ func TestInv(t *testing.T) {
 	}
 }
 
+func TestInvSqrt(t *testing.T) {
+	const numTests = 1 << 9
+	var x, y, z Elt
+	prime := P()
+	p := conv.BytesLe2BigInt(prime[:])
+	exp := big.NewInt(1)
+	exp.Add(p, exp).Rsh(exp, 2)
+	var frac, root, sqRoot big.Int
+	var wantQR bool
+	var want *big.Int
+	for i := 0; i < numTests; i++ {
+		_, _ = rand.Read(x[:])
+		_, _ = rand.Read(y[:])
+
+		gotQR := InvSqrt(&z, &x, &y)
+		Modp(&z)
+		got := conv.BytesLe2BigInt(z[:])
+
+		xx := conv.BytesLe2BigInt(x[:])
+		yy := conv.BytesLe2BigInt(y[:])
+		frac.ModInverse(yy, p).Mul(&frac, xx).Mod(&frac, p)
+		root.Exp(&frac, exp, p)
+		sqRoot.Mul(&root, &root).Mod(&sqRoot, p)
+
+		if sqRoot.Cmp(&frac) == 0 {
+			want = &root
+			wantQR = true
+		} else {
+			want = big.NewInt(0)
+			wantQR = false
+		}
+
+		if wantQR {
+			if gotQR != wantQR || got.Cmp(want) != 0 {
+				test.ReportError(t, got, want, x, y)
+			}
+		} else {
+			if gotQR != wantQR {
+				test.ReportError(t, gotQR, wantQR, x, y)
+			}
+		}
+	}
+}
+
 func TestGeneric(t *testing.T) {
 	t.Run("Cmov", func(t *testing.T) { testCmov(t, cmovGeneric) })
 	t.Run("Cswap", func(t *testing.T) { testCswap(t, cswapGeneric) })
@@ -343,6 +383,11 @@ func BenchmarkFp(b *testing.B) {
 	b.Run("Inv", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			Inv(&x, &y)
+		}
+	})
+	b.Run("InvSqrt", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_ = InvSqrt(&z, &x, &y)
 		}
 	})
 }
