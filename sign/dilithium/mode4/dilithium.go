@@ -2,13 +2,14 @@
 // as submitted to round2 of the NIST PQC competition and described in
 //
 // https://pq-crystals.org/dilithium/data/dilithium-specification-round2.pdf
-package mode4
+package mode4aes
 
 import (
 	"errors"
 	"io"
 
 	common "github.com/cloudflare/circl/sign/dilithium/internal"
+	"github.com/cloudflare/circl/sign/dilithium/mode"
 	"github.com/cloudflare/circl/sign/dilithium/mode4/internal"
 )
 
@@ -126,3 +127,5 @@ func (sk *PrivateKey) UnmarshalBinary(data []byte) error {
 	sk.Unpack(&buf)
 	return nil
 }
+
+var Mode mode.Mode = &internal.Mode{}

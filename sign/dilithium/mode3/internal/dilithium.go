@@ -2,10 +2,12 @@ package internal
 
 import (
 	cryptoRand "crypto/rand"
+	"fmt"
 	"io"
 
 	"github.com/cloudflare/circl/internal/shake"
 	common "github.com/cloudflare/circl/sign/dilithium/internal"
+	"github.com/cloudflare/circl/sign/dilithium/mode"
 )
 
 const (
@@ -358,4 +360,95 @@ func SignTo(sk *PrivateKey, msg []byte, signature []byte) {
 	}
 
 	sig.Pack(signature[:])
+}
+
+// Mode implements the mode.Mode interface.
+type Mode struct{}
+
+func (m *Mode) GenerateKey(rand io.Reader) (mode.PublicKey,
+	mode.PrivateKey, error) {
+	return GenerateKey(rand)
+}
+
+func (m *Mode) NewKeyFromSeed(seed []byte) (mode.PublicKey,
+	mode.PrivateKey) {
+	if len(seed) != common.SeedSize {
+		panic(fmt.Sprintf("seed must be of length %d", common.SeedSize))
+	}
+	seedBuf := [common.SeedSize]byte{}
+	copy(seedBuf[:], seed)
+	return NewKeyFromSeed(&seedBuf)
+}
+
+func (m *Mode) SignTo(sk mode.PrivateKey, msg []byte, signature []byte) {
+	isk := sk.(*PrivateKey)
+	SignTo(isk, msg, signature)
+}
+
+func (m *Mode) Sign(sk mode.PrivateKey, msg []byte) []byte {
+	isk := sk.(*PrivateKey)
+	ret := [SignatureSize]byte{}
+	SignTo(isk, msg, ret[:])
+	return ret[:]
+}
+
+func (m *Mode) Verify(pk mode.PublicKey, msg []byte, signature []byte) bool {
+	ipk := pk.(*PublicKey)
+	return Verify(ipk, msg, signature)
+}
+
+func (m *Mode) PublicKeyFromBytes(data []byte) mode.PublicKey {
+	var ret PublicKey
+	if len(data) != PublicKeySize {
+		panic(fmt.Errorf("packed public key must be of %d bytes",
+			PublicKeySize))
+	}
+	var buf [PublicKeySize]byte
+	copy(buf[:], data)
+	ret.Unpack(&buf)
+	return &ret
+}
+
+func (m *Mode) PrivateKeyFromBytes(data []byte) mode.PrivateKey {
+	var ret PrivateKey
+	if len(data) != PrivateKeySize {
+		panic(fmt.Errorf("packed public key must be of %d bytes",
+			PrivateKeySize))
+	}
+	var buf [PrivateKeySize]byte
+	copy(buf[:], data)
+	ret.Unpack(&buf)
+	return &ret
+}
+
+func (m *Mode) SeedSize() int {
+	return common.SeedSize
+}
+
+func (m *Mode) PublicKeySize() int {
+	return PublicKeySize
+}
+
+func (m *Mode) PrivateKeySize() int {
+	return PrivateKeySize
+}
+
+func (m *Mode) SignatureSize() int {
+	return SignatureSize
+}
+
+func (m *Mode) Name() string {
+	return Name
+}
+
+func (pk *PublicKey) Bytes() []byte {
+	ret := [PublicKeySize]byte{}
+	pk.Pack(&ret)
+	return ret[:]
+}
+
+func (sk *PrivateKey) Bytes() []byte {
+	ret := [PrivateKeySize]byte{}
+	sk.Pack(&ret)
+	return ret[:]
 }

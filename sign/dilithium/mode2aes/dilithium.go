@@ -9,6 +9,7 @@ import (
 	"io"
 
 	common "github.com/cloudflare/circl/sign/dilithium/internal"
+	"github.com/cloudflare/circl/sign/dilithium/mode"
 	"github.com/cloudflare/circl/sign/dilithium/mode2aes/internal"
 )
 
@@ -126,3 +127,5 @@ func (sk *PrivateKey) UnmarshalBinary(data []byte) error {
 	sk.Unpack(&buf)
 	return nil
 }
+
+var Mode mode.Mode = &internal.Mode{}
