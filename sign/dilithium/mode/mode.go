@@ -7,12 +7,18 @@ import (
 )
 
 // PublicKey is a Dilithium public key.
+//
+// The structure contains values precomputed during unpacking/key generation
+// and is therefore signficantly larger than a packed public key.
 type PublicKey interface {
 	// Packs public key
 	Bytes() []byte
 }
 
 // PrivateKey is a Dilithium public key.
+//
+// The structure contains values precomputed during unpacking/key generation
+// and is therefore signficantly larger than a packed private key.
 type PrivateKey interface {
 	// Packs private key
 	Bytes() []byte
@@ -42,11 +48,12 @@ type Mode interface {
 	Verify(pk PublicKey, msg []byte, signature []byte) bool
 
 	// Unpacks a public key.  Panics if the buffer is not of PublicKeySize()
-	// length.
+	// length.  Precomputes values to speed up subsequent calls to Verify.
 	PublicKeyFromBytes([]byte) PublicKey
 
 	// Unpacks a private key.  Panics if the buffer is not
-	// of PrivateKeySize() length.
+	// of PrivateKeySize() length.  Precomputes values to speed up subsequent
+	// calls to Sign(To).
 	PrivateKeyFromBytes([]byte) PrivateKey
 
 	// SeedSize returns the size of the seed for NewKeyFromSeed

@@ -23,9 +23,10 @@ type PublicKey struct {
 
 	// Cached values
 	t1p [common.PolyT1Size * K]byte
+	A   *Mat
 }
 
-// PublicKey is the type of Dilithium private keys.
+// PrivateKey is the type of Dilithium private keys.
 type PrivateKey struct {
 	rho [32]byte
 	key [32]byte
@@ -33,6 +34,12 @@ type PrivateKey struct {
 	s2  VecK
 	t0  VecK
 	tr  [48]byte
+
+	// Cached values
+	A   Mat  // ExpandA(ρ)
+	s1h VecL // NTT(s1)
+	s2h VecK // NTT(s2)
+	t0h VecK // NTT(t0)
 }
 
 type unpackedSignature struct {
@@ -77,6 +84,8 @@ func (pk *PublicKey) Unpack(buf *[PublicKeySize]byte) {
 	copy(pk.rho[:], buf[:32])
 	copy(pk.t1p[:], buf[32:])
 	pk.t1.UnpackT1(pk.t1p[:])
+	pk.A = new(Mat)
+	pk.A.Derive(&pk.rho)
 }
 
 // Packs the private key into buf.
@@ -103,9 +112,17 @@ func (sk *PrivateKey) Unpack(buf *[PrivateKeySize]byte) {
 	sk.s2.UnpackLeqEta(buf[offset:])
 	offset += PolyLeqEtaSize * K
 	sk.t0.UnpackT0(buf[offset:])
+
+	// Cached values
+	sk.A.Derive(&sk.rho)
+	sk.t0h = sk.t0
+	sk.t0h.NTT()
+	sk.s1h = sk.s1
+	sk.s1h.NTT()
+	sk.s2h = sk.s2
+	sk.s2h.NTT()
 }
 
-// TODO cache A?
 // TODO cache tr?
 
 // GenerateKey generates a public/private key pair using entropy from rand.
@@ -132,16 +149,13 @@ func NewKeyFromExpandedSeed(seed *[96]byte) (*PublicKey, *PrivateKey) {
 	var pk PublicKey
 	var sk PrivateKey
 	var sSeed [32]byte
-	var t VecK
-
-	var A Mat
 
 	copy(pk.rho[:], seed[:32])
 	copy(sSeed[:], seed[32:64])
 	copy(sk.key[:], seed[64:])
 	copy(sk.rho[:], pk.rho[:])
 
-	A.Derive(&pk.rho)
+	sk.A.Derive(&pk.rho)
 
 	for i := uint16(0); i < L; i++ {
 		PolyDeriveUniformLeqEta(&sk.s1[i], &sSeed, i)
@@ -151,22 +165,19 @@ func NewKeyFromExpandedSeed(seed *[96]byte) (*PublicKey, *PrivateKey) {
 		PolyDeriveUniformLeqEta(&sk.s2[i], &sSeed, i+L)
 	}
 
-	// Set t to A s1 + s2
-	s1h := sk.s1
-	s1h.NTT()
-	for i := 0; i < K; i++ {
-		PolyDotHat(&t[i], &A[i], &s1h)
-		t[i].ReduceLe2Q()
-		t[i].InvNTT()
-	}
-	t.Add(&t, &sk.s2)
-	t.Normalize()
+	sk.s1h = sk.s1
+	sk.s1h.NTT()
+	sk.s2h = sk.s2
+	sk.s2h.NTT()
 
-	// Compute t0, t1 = Power2Round(t)
-	t.Power2Round(&sk.t0, &pk.t1)
+	sk.computeT0andT1(&sk.t0, &pk.t1)
+
+	sk.t0h = sk.t0
+	sk.t0h.NTT()
 
 	// Finish public key
 	pk.t1.PackT1(pk.t1p[:])
+	pk.A = &sk.A
 
 	var packedPk [PublicKeySize]byte
 	pk.Pack(&packedPk)
@@ -175,6 +186,23 @@ func NewKeyFromExpandedSeed(seed *[96]byte) (*PublicKey, *PrivateKey) {
 	h.Read(sk.tr[:])
 
 	return &pk, &sk
+}
+
+// Computes t0 and t1 from sk.s1h, sk.s2 and sk.A.
+func (sk *PrivateKey) computeT0andT1(t0, t1 *VecK) {
+	var t VecK
+
+	// Set t to A s1 + s2
+	for i := 0; i < K; i++ {
+		PolyDotHat(&t[i], &sk.A[i], &sk.s1h)
+		t[i].ReduceLe2Q()
+		t[i].InvNTT()
+	}
+	t.Add(&t, &sk.s2)
+	t.Normalize()
+
+	// Compute t0, t1 = Power2Round(t)
+	t.Power2Round(t0, t1)
 }
 
 // NewKeyFromSeed derives a public/private key pair using the given seed.
@@ -189,7 +217,6 @@ func NewKeyFromSeed(seed *[common.SeedSize]byte) (*PublicKey, *PrivateKey) {
 // Verify checks whether the given signature by pk on msg is valid.
 func Verify(pk *PublicKey, msg []byte, signature []byte) bool {
 	var sig unpackedSignature
-	var A Mat
 	var tr, mu [48]byte
 	var zh VecL
 	var Az, Az2dct1, w1 VecK
@@ -200,8 +227,6 @@ func Verify(pk *PublicKey, msg []byte, signature []byte) bool {
 	if !sig.Unpack(signature) {
 		return false
 	}
-
-	A.Derive(&pk.rho)
 
 	// tr = CRH(ρ ‖ t1)
 	h := shake.NewShake256()
@@ -220,7 +245,7 @@ func Verify(pk *PublicKey, msg []byte, signature []byte) bool {
 	zh.NTT()
 
 	for i := 0; i < K; i++ {
-		PolyDotHat(&Az[i], &A[i], &zh)
+		PolyDotHat(&Az[i], &pk.A[i], &zh)
 	}
 
 	// Next, we compute Az - 2^d·c·t1.
@@ -249,10 +274,9 @@ func Verify(pk *PublicKey, msg []byte, signature []byte) bool {
 
 // SignTo signs the given message and writes the signature into signature
 func SignTo(sk *PrivateKey, msg []byte, signature []byte) {
-	var A Mat
 	var mu, rhop [48]byte
-	var s1h, y, yh VecL
-	var s2h, t0h, w, w0, w1, w0mcs2, ct0, w0mcs2pct0 VecK
+	var y, yh VecL
+	var w, w0, w1, w0mcs2, ct0, w0mcs2pct0 VecK
 	var ch common.Poly
 	var yNonce uint16
 	var sig unpackedSignature
@@ -260,8 +284,6 @@ func SignTo(sk *PrivateKey, msg []byte, signature []byte) {
 	if len(signature) < SignatureSize {
 		panic("Signature does not fit in that byteslice")
 	}
-
-	A.Derive(&sk.rho)
 
 	//  μ = CRH(tr ‖ msg)
 	h := shake.NewShake256()
@@ -275,14 +297,6 @@ func SignTo(sk *PrivateKey, msg []byte, signature []byte) {
 	h.Write(mu[:])
 	h.Read(rhop[:])
 
-	// Precompute NTT(s1), NTT(s2) ad NTT(t0)
-	s1h = sk.s1
-	s1h.NTT()
-	s2h = sk.s2
-	s2h.NTT()
-	t0h = sk.t0
-	t0h.NTT()
-
 	// Main rejection loop
 	for {
 		// y = ExpandMask(ρ', key)
@@ -295,7 +309,7 @@ func SignTo(sk *PrivateKey, msg []byte, signature []byte) {
 		yh = y
 		yh.NTT()
 		for i := 0; i < K; i++ {
-			PolyDotHat(&w[i], &A[i], &yh)
+			PolyDotHat(&w[i], &sk.A[i], &yh)
 			w[i].ReduceLe2Q()
 			w[i].InvNTT()
 		}
@@ -313,7 +327,7 @@ func SignTo(sk *PrivateKey, msg []byte, signature []byte) {
 		//      three cases.
 		// Ensure ‖ w0 - c·s2 ‖_∞ < γ2 - β.  See Lemma 2 in the spec.
 		for i := 0; i < K; i++ {
-			w0mcs2[i].MulHat(&ch, &s2h[i])
+			w0mcs2[i].MulHat(&ch, &sk.s2h[i])
 			w0mcs2[i].InvNTT()
 		}
 		w0mcs2.Sub(&w0, &w0mcs2)
@@ -325,7 +339,7 @@ func SignTo(sk *PrivateKey, msg []byte, signature []byte) {
 
 		// z = y + c·s1
 		for i := 0; i < L; i++ {
-			sig.z[i].MulHat(&ch, &s1h[i])
+			sig.z[i].MulHat(&ch, &sk.s1h[i])
 			sig.z[i].InvNTT()
 		}
 		sig.z.Add(&sig.z, &y)
@@ -338,7 +352,7 @@ func SignTo(sk *PrivateKey, msg []byte, signature []byte) {
 
 		// Compute c·t0
 		for i := 0; i < K; i++ {
-			ct0[i].MulHat(&ch, &t0h[i])
+			ct0[i].MulHat(&ch, &sk.t0h[i])
 			ct0[i].InvNTT()
 		}
 		ct0.NormalizeAssumingLe2Q()
@@ -360,6 +374,18 @@ func SignTo(sk *PrivateKey, msg []byte, signature []byte) {
 	}
 
 	sig.Pack(signature[:])
+}
+
+// Computes the public key corresponding to this private key.
+func (sk *PrivateKey) Public() *PublicKey {
+	var t0 VecK
+	pk := &PublicKey{
+		rho: sk.rho,
+		A:   &sk.A,
+	}
+	sk.computeT0andT1(&t0, &pk.t1)
+	pk.t1.PackT1(pk.t1p[:])
+	return pk
 }
 
 // Mode implements the mode.Mode interface.
