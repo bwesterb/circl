@@ -3,6 +3,7 @@
 package mode
 
 import (
+	"crypto"
 	"io"
 )
 
@@ -22,6 +23,8 @@ type PublicKey interface {
 type PrivateKey interface {
 	// Packs private key
 	Bytes() []byte
+
+	crypto.Signer
 }
 
 // Mode is a certain configuration of the Dilithium signature scheme.

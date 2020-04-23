@@ -103,7 +103,7 @@ func TestPublicFromPrivate(t *testing.T) {
 	for i := uint64(0); i < 100; i++ {
 		binary.LittleEndian.PutUint64(seed[:], i)
 		pk, sk := NewKeyFromSeed(&seed)
-		pk2 := sk.Public()
+		pk2 := sk.Public().(*PublicKey)
 		var pkb1, pkb2 [PublicKeySize]byte
 		pk.Pack(&pkb1)
 		pk2.Pack(&pkb2)

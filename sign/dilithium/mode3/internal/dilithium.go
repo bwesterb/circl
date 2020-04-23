@@ -1,7 +1,9 @@
 package internal
 
 import (
+	"crypto"
 	cryptoRand "crypto/rand"
+	"errors"
 	"fmt"
 	"io"
 
@@ -377,7 +379,10 @@ func SignTo(sk *PrivateKey, msg []byte, signature []byte) {
 }
 
 // Computes the public key corresponding to this private key.
-func (sk *PrivateKey) Public() *PublicKey {
+//
+// Returns a *PublicKey.  The type crypto.PublicKey is used to make
+// PrivateKey implement the crypto.Signer interface.
+func (sk *PrivateKey) Public() crypto.PublicKey {
 	var t0 VecK
 	pk := &PublicKey{
 		rho: sk.rho,
@@ -386,6 +391,27 @@ func (sk *PrivateKey) Public() *PublicKey {
 	sk.computeT0andT1(&t0, &pk.t1)
 	pk.t1.PackT1(pk.t1p[:])
 	return pk
+}
+
+// Sign signs the given message.
+//
+// opts.HashFunc() must return zero, which can be achieved by passing
+// crypto.Hash(0) for opts.  rand is ignored.  Will only return an error
+// if opts.HashFunc() is non-zero.
+//
+// This function is used to make PrivateKey implement the crypto.Signer
+// interface.  The package-level SignTo function might be more convenient
+// to use.
+func (sk *PrivateKey) Sign(rand io.Reader, msg []byte, opts crypto.SignerOpts) (
+	signature []byte, err error) {
+	var sig [SignatureSize]byte
+
+	if opts.HashFunc() != crypto.Hash(0) {
+		return nil, errors.New("dilithium: cannot sign hashed message")
+	}
+
+	SignTo(sk, msg, sig[:])
+	return sig[:], nil
 }
 
 // Mode implements the mode.Mode interface.
