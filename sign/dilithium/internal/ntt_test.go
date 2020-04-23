@@ -19,7 +19,7 @@ func TestNTT(t *testing.T) {
 		q.Normalize()
 		p.NTT()
 		for i := uint(0); i < N; i++ {
-			if p[i] > 16*Q {
+			if p[i] > 18*Q {
 				t.Fatalf("NTT(%v)[%d] = %d > 18*Q", q, i, p[i])
 			}
 		}
