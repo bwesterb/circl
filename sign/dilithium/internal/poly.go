@@ -49,12 +49,12 @@ func (p *Poly) Sub(a, b *Poly) {
 //
 // Requires the coefficients of p to be normalized.
 func (p *Poly) Exceeds(bound uint32) bool {
-	// Note that we are allowed to leak which coefficients breaks the bound,
-	// but not its sign.
+	// Note that we are allowed to leak which coefficients break the bound,
+	// but not their sign.
 	for i := 0; i < N; i++ {
 		// The central. reps. of {0,       1, ..., (Q-1)/2,  (Q+1)/2, ..., Q-1}
 		// are given by          {0,       1, ..., (Q-1)/2, -(Q-1)/2, ...,  -1}
-		// so their norms are    {0,       1, ..., (Q-1)/2l, (Q-1)/2, ...,   1}.
+		// so their norms are    {0,       1, ..., (Q-1)/2,  (Q-1)/2, ...,   1}.
 		// We'll compute them in a different way though.
 
 		// Sets x to             {(Q-1)/2, (Q-3)/2, ..., 0, -1, ..., -(Q-1)/2}
@@ -89,9 +89,10 @@ func (p *Poly) Power2Round(p0PlusQ, p1 *Poly) {
 	}
 }
 
-// Sets p to the hint polynomial for low part p0 and high part p1.
+// Sets p to the hint polynomial for p0 the modified low bits and p1
+// the unmodified high bits --- see makeHint().
 //
-// Returns the number of ones in the hint vector.
+// Returns the number of ones in the hint polynomial.
 func (p *Poly) MakeHint(p0, p1 *Poly) (pop uint32) {
 	for i := 0; i < N; i++ {
 		h := makeHint(p0[i], p1[i])

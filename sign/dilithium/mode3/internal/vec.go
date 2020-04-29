@@ -157,7 +157,8 @@ func (v *VecK) Decompose(v0PlusQ, v1 *VecK) {
 	}
 }
 
-// Sets p to the hint polynomail for low part p0 and high part p1.
+// Sets v to the hint vector for v0 the modified low bits and v1
+// the unmodified high bits --- see makeHint().
 //
 // Returns the number of ones in the hint vector.
 func (v *VecK) MakeHint(v0, v1 *VecK) (pop uint32) {
@@ -169,6 +170,7 @@ func (v *VecK) MakeHint(v0, v1 *VecK) (pop uint32) {
 
 // Computes corrections to the high bits of the polynomials in the vector
 // w using the hints in h and sets v to the corrected high bits.  Returns v.
+// See useHint().
 func (v *VecK) UseHint(q, hint *VecK) *VecK {
 	for i := 0; i < K; i++ {
 		v[i].UseHint(&q[i], &hint[i])

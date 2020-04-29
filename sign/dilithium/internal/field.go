@@ -52,7 +52,7 @@ func power2round(a uint32) (a0plusQ, a1 uint32) {
 }
 
 // Splits 0 ≤ a < Q into a0 and a1 with a = a1*α + a0 with -α/2 < a0 ≤ α/2,
-// except for when we would have a1 = (Q-1)/α in which case a1=0 is taken
+// except for when we would have a1 = (Q-1)/α = 16 in which case a1=0 is taken
 // and -α/2 ≤ a0 < 0.  Returns a0 + Q.  Note 0 ≤ a1 ≤ 15.
 // (Note α = 2*γ2 = γ1 with the chosen parameters of Dilithium.)
 func decompose(a uint32) (a0plusQ, a1 uint32) {
@@ -86,22 +86,40 @@ func decompose(a uint32) (a0plusQ, a1 uint32) {
 	return
 }
 
-// TODO document
+// Assume 0 ≤ r, f < Q with ‖f‖_∞ ≤ α/2.  Decompose r as r = r1*α + r0 as
+// computed by decompoes().  Write r' := r - f (mod Q).  Now, decompose
+// r'=r-f again as  r' = r'1*α + r'0 using decompose().  As f is small, we
+// have r'1 = r1 + h, where h ∈ {-1, 0, 1}.  makeHint() computes |h|
+// given z0 := r0 - f (mod Q) and r1.  With |h|, which is called the hint,
+// we can reconstruct r1 using only r' = r - f, which is done by useHint().
+// To wit:
+//
+//     useHint( r - f, makeHint( r0 - f, r1 ) ) = r1.
+//
+// Assumes 0 ≤ z0 < Q.
 func makeHint(z0, r1 uint32) uint32 {
+	// If -α/2 < r0 - f ≤ α/2, then r1*α + r0 - f is a valid decomposition of r'
+	// with the restrictions of decompose() and so r'1 = r1.  So the hint
+	// should be 0. This is covered by the first two inequalities.
+	// There is one other case: if r0 - f = -α/2, then r1*α + r0 - f is also
+	// a valid decomposition if r1 = 0.  In the other cases a one is carried
+	// and the hint should be 1.
 	if z0 <= Gamma2 || z0 > Q-Gamma2 || (z0 == Q-Gamma2 && r1 == 0) {
 		return 0
 	}
 	return 1
 }
 
-// TODO document
-func useHint(r uint32, hint uint32) uint32 {
-	r0plusQ, r1 := decompose(r)
+// Uses the hint created by makeHint() to reconstruct r1 from r'=r-f; see
+// documentation of makeHint() for context.
+// Assumes 0 ≤ r' < Q.
+func useHint(rp uint32, hint uint32) uint32 {
+	rp0plusQ, rp1 := decompose(rp)
 	if hint == 0 {
-		return r1
+		return rp1
 	}
-	if r0plusQ > Q {
-		return (r1 + 1) & 15
+	if rp0plusQ > Q {
+		return (rp1 + 1) & 15
 	}
-	return (r1 - 1) & 15
+	return (rp1 - 1) & 15
 }
