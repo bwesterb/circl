@@ -27,10 +27,10 @@ func (p *Poly) UnpackT1(buf []byte) {
 func (p *Poly) PackT0(buf []byte) {
 	j := 0
 	for i := 0; i < PolyT0Size; i += 7 {
-		p0 := Q + (TwoToTheDmOne) - p[j]
-		p1 := Q + (TwoToTheDmOne) - p[j+1]
-		p2 := Q + (TwoToTheDmOne) - p[j+2]
-		p3 := Q + (TwoToTheDmOne) - p[j+3]
+		p0 := Q + (1 << (D - 1)) - p[j]
+		p1 := Q + (1 << (D - 1)) - p[j+1]
+		p2 := Q + (1 << (D - 1)) - p[j+2]
+		p3 := Q + (1 << (D - 1)) - p[j+3]
 
 		buf[i] = byte(p0)
 		buf[i+1] = byte(p0>>8) | byte(p1<<6)

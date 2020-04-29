@@ -9,8 +9,7 @@ import (
 //
 // Assumes coefficients of p are not normalized, but in [q-η,q+η].
 func PolyPackLeqEta(p *common.Poly, buf []byte) {
-	// TODO check if Go compiler eliminates branch
-	if DoubleEtaBits == 4 {
+	if DoubleEtaBits == 4 { // compiler eliminates branch
 		j := 0
 		for i := 0; i < PolyLeqEtaSize; i++ {
 			buf[i] = (byte(common.Q+Eta-p[j]) |
@@ -46,8 +45,7 @@ func PolyPackLeqEta(p *common.Poly, buf []byte) {
 // Beware, for arbitrary buf the coefficients of p might en up in
 // the interval [q-2^b,q+2^b] where b is the least b with η≤2^b.
 func PolyUnpackLeqEta(p *common.Poly, buf []byte) {
-	// TODO check if branch is optimized out
-	if DoubleEtaBits == 4 {
+	if DoubleEtaBits == 4 { // compiler eliminates branch
 		j := 0
 		for i := 0; i < PolyLeqEtaSize; i++ {
 			p[j] = common.Q + Eta - uint32(buf[i]&15)
@@ -75,8 +73,6 @@ func PolyUnpackLeqEta(p *common.Poly, buf []byte) {
 // Writes v with coefficients in {0, 1} of which at most ω non-zero
 // to buf, which must have length ω+k.
 func (v *VecK) PackHint(buf []byte) {
-	// TODO optimize?
-
 	// The packed hint starts with the indices of the non-zero coefficients
 	// For instance:
 	//

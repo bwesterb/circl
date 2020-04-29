@@ -72,10 +72,8 @@ func PolyDeriveUniformLeqEta(p *common.Poly, seed *[32]byte, nonce uint16) {
 	sample := func() {
 		// We use rejection sampling
 		for j := 0; j < length && i < common.N; j++ {
-			// TODO check whether the Go compiler gets rid of this
-			// conditional (probably not.)
 			var t1, t2 uint32
-			if Eta <= 3 {
+			if Eta <= 3 { // branch is eliminated by compiler
 				t1 = uint32(buf[j]) & 7
 				t2 = uint32(buf[j]) >> 5
 			} else {
