@@ -272,7 +272,10 @@ func Verify(pk *PublicKey, msg []byte, signature []byte) bool {
 	Az2dct1.InvNTT()
 	Az2dct1.NormalizeAssumingLe2Q()
 
-	// w1 = UseHint(pk.hint, Az - 2^d·c·t1).
+	// UseHint(pk.hint, Az - 2^d·c·t1)
+	//    = UseHint(pk.hint, w - c·s2 + c·t0)
+	//    = UseHint(pk.hint, r + c·t0)
+	//    = r1 = w1.
 	w1.UseHint(&Az2dct1, &sig.hint)
 
 	// c' = H(μ, w1)
@@ -331,9 +334,12 @@ func SignTo(sk *PrivateKey, msg []byte, signature []byte) {
 		ch = sig.c
 		ch.NTT()
 
-		// TODO check reference implementation reduction of checks to these
-		//      three cases.
-		// Ensure ‖ w0 - c·s2 ‖_∞ < γ2 - β.  See Lemma 2 in the spec.
+		// Ensure ‖ w0 - c·s2 ‖_∞ < γ2 - β.
+		//
+		// By Lemma 3 of the specification this is equivalent to checking that
+		// both ‖ r0 ‖_∞ < γ2 - β and r1 = w1, for the decomposition
+		// w - c·s2 = r1 α + r0 as computed by decompose().
+		// See also §4.1 of the specification.
 		for i := 0; i < K; i++ {
 			w0mcs2[i].MulHat(&ch, &sk.s2h[i])
 			w0mcs2[i].InvNTT()
@@ -370,7 +376,17 @@ func SignTo(sk *PrivateKey, msg []byte, signature []byte) {
 			continue
 		}
 
-		// Create the hint
+		// Create the hint to be able to reconstruct w1 from w - c·s2 + c·t0.
+		// Note that we're not using makeHint() in the obvious way as we
+		// do not know whether ‖ sc·s2 - c·t0 ‖_∞ < γ2.  Instead we note
+		// that our makeHint() is actually the same as a makeHint for a
+		// different decomposition:
+		//
+		// Earlier we ensured indirectly with a check that r1 = w1 where
+		// r = w - c·s2.  Hence r0 = r - r1 α = w - c·s2 - w1 α = w0 - c·s2.
+		// Thus  MakeHint(w0 - c·s2 + c·t0, w1) = MakeHint(r0 + c·t0, r1)
+		// and UseHint(w - c·s2 + c·t0, w1) = UseHint(r + c·t0, r1).
+		// As we just ensured that ‖ c·t0 ‖_∞ < γ2 our usage is correct.
 		w0mcs2pct0.Add(&w0mcs2, &ct0)
 		w0mcs2pct0.NormalizeAssumingLe2Q()
 		hintPop := sig.hint.MakeHint(&w0mcs2pct0, &w1)
