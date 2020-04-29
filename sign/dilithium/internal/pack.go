@@ -27,11 +27,10 @@ func (p *Poly) UnpackT1(buf []byte) {
 func (p *Poly) PackT0(buf []byte) {
 	j := 0
 	for i := 0; i < PolyT0Size; i += 7 {
-		// TODO constant for 1<<(D-1)
-		p0 := Q + (1 << (D - 1)) - p[j]
-		p1 := Q + (1 << (D - 1)) - p[j+1]
-		p2 := Q + (1 << (D - 1)) - p[j+2]
-		p3 := Q + (1 << (D - 1)) - p[j+3]
+		p0 := Q + (TwoToTheDmOne) - p[j]
+		p1 := Q + (TwoToTheDmOne) - p[j+1]
+		p2 := Q + (TwoToTheDmOne) - p[j+2]
+		p3 := Q + (TwoToTheDmOne) - p[j+3]
 
 		buf[i] = byte(p0)
 		buf[i+1] = byte(p0>>8) | byte(p1<<6)
@@ -142,8 +141,6 @@ func (p *Poly) PackLe16(buf []byte) {
 // Writes p with 60 non-zero coefficients {-1,1} to buf, which must have
 // length 40.
 func (p *Poly) PackB60(buf []byte) {
-	// TODO optimize?
-
 	// We start with a mask of the non-zero positions of p (which is 32 bytes)
 	// and then append 60 packed bits, where a one indicates a negative
 	// coefficients.

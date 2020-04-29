@@ -12,8 +12,8 @@ import (
 func hash(in []byte) [16]byte {
 	var ret [16]byte
 	h := shake.NewShake256()
-	h.Write(in)
-	h.Read(ret[:])
+	h.Write(in)    // nolint:errcheck
+	h.Read(ret[:]) // nolint:errcheck
 	return ret
 }
 

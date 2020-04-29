@@ -14,7 +14,7 @@ type AesStream struct {
 }
 
 // Create a new AesStream as a replacement of SHAKE128.  (Note that
-// not all occurrences of SHAKE are replaced by AES in the AES-variants.)
+// not all occurrences of SHAKE are replaced by AES in the AES-variants).
 func NewAesStream128(key *[32]byte, nonce uint16) AesStream {
 	c, _ := aes.NewCipher(key[:])
 	return AesStream{c: c, nonce: nonce}

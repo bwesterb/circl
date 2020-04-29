@@ -26,6 +26,7 @@ type PublicKey struct {
 	// Cached values
 	t1p [common.PolyT1Size * K]byte
 	A   *Mat
+	tr  *[48]byte
 }
 
 // PrivateKey is the type of Dilithium private keys.
@@ -85,9 +86,16 @@ func (pk *PublicKey) Pack(buf *[PublicKeySize]byte) {
 func (pk *PublicKey) Unpack(buf *[PublicKeySize]byte) {
 	copy(pk.rho[:], buf[:32])
 	copy(pk.t1p[:], buf[32:])
+
 	pk.t1.UnpackT1(pk.t1p[:])
 	pk.A = new(Mat)
 	pk.A.Derive(&pk.rho)
+
+	// tr = CRH(ρ ‖ t1) = CRH(pk)
+	pk.tr = new([48]byte)
+	h := shake.NewShake256()
+	h.Write(buf[:])  // nolint:errcheck
+	h.Read(pk.tr[:]) // nolint:errcheck
 }
 
 // Packs the private key into buf.
@@ -124,8 +132,6 @@ func (sk *PrivateKey) Unpack(buf *[PrivateKeySize]byte) {
 	sk.s2h = sk.s2
 	sk.s2h.NTT()
 }
-
-// TODO cache tr?
 
 // GenerateKey generates a public/private key pair using entropy from rand.
 // If rand is nil, crypto/rand.Reader will be used.
@@ -177,15 +183,21 @@ func NewKeyFromExpandedSeed(seed *[96]byte) (*PublicKey, *PrivateKey) {
 	sk.t0h = sk.t0
 	sk.t0h.NTT()
 
-	// Finish public key
+	// Complete public key far enough to be packed
 	pk.t1.PackT1(pk.t1p[:])
 	pk.A = &sk.A
 
+	// Finish private key
 	var packedPk [PublicKeySize]byte
 	pk.Pack(&packedPk)
+
+	// tr = CRH(ρ ‖ t1) = CRH(pk)
 	h := shake.NewShake256()
-	h.Write(packedPk[:])
-	h.Read(sk.tr[:])
+	h.Write(packedPk[:]) // nolint:errcheck
+	h.Read(sk.tr[:])     // nolint:errcheck
+
+	// Finish cache of public key
+	pk.tr = &sk.tr
 
 	return &pk, &sk
 }
@@ -211,15 +223,15 @@ func (sk *PrivateKey) computeT0andT1(t0, t1 *VecK) {
 func NewKeyFromSeed(seed *[common.SeedSize]byte) (*PublicKey, *PrivateKey) {
 	var buf [96]byte
 	h := shake.NewShake128()
-	h.Write(seed[:])
-	h.Read(buf[:])
+	h.Write(seed[:]) // nolint:errcheck
+	h.Read(buf[:])   // nolint:errcheck
 	return NewKeyFromExpandedSeed(&buf)
 }
 
 // Verify checks whether the given signature by pk on msg is valid.
 func Verify(pk *PublicKey, msg []byte, signature []byte) bool {
 	var sig unpackedSignature
-	var tr, mu [48]byte
+	var mu [48]byte
 	var zh VecL
 	var Az, Az2dct1, w1 VecK
 	var ch, cp common.Poly
@@ -230,17 +242,11 @@ func Verify(pk *PublicKey, msg []byte, signature []byte) bool {
 		return false
 	}
 
-	// tr = CRH(ρ ‖ t1)
-	h := shake.NewShake256()
-	h.Write(pk.rho[:])
-	h.Write(pk.t1p[:])
-	h.Read(tr[:])
-
 	// μ = CRH(tr ‖ msg)
-	h.Reset()
-	h.Write(tr[:])
-	h.Write(msg)
-	h.Read(mu[:])
+	h := shake.NewShake256()
+	h.Write(pk.tr[:]) // nolint:errcheck
+	h.Write(msg)      // nolint:errcheck
+	h.Read(mu[:])     // nolint:errcheck
 
 	// Compute Az
 	zh = sig.z
@@ -274,7 +280,7 @@ func Verify(pk *PublicKey, msg []byte, signature []byte) bool {
 	return sig.c == cp
 }
 
-// SignTo signs the given message and writes the signature into signature
+// SignTo signs the given message and writes the signature into signature.
 func SignTo(sk *PrivateKey, msg []byte, signature []byte) {
 	var mu, rhop [48]byte
 	var y, yh VecL
@@ -289,15 +295,15 @@ func SignTo(sk *PrivateKey, msg []byte, signature []byte) {
 
 	//  μ = CRH(tr ‖ msg)
 	h := shake.NewShake256()
-	h.Write(sk.tr[:])
-	h.Write(msg)
-	h.Read(mu[:])
+	h.Write(sk.tr[:]) // nolint:errcheck
+	h.Write(msg)      // nolint:errcheck
+	h.Read(mu[:])     // nolint:errcheck
 
 	// ρ' = CRH(μ ‖ key)
 	h.Reset()
-	h.Write(sk.key[:])
-	h.Write(mu[:])
-	h.Read(rhop[:])
+	h.Write(sk.key[:]) // nolint:errcheck
+	h.Write(mu[:])     // nolint:errcheck
+	h.Read(rhop[:])    // nolint:errcheck
 
 	// Main rejection loop
 	for {
@@ -387,6 +393,7 @@ func (sk *PrivateKey) Public() crypto.PublicKey {
 	pk := &PublicKey{
 		rho: sk.rho,
 		A:   &sk.A,
+		tr:  &sk.tr,
 	}
 	sk.computeT0andT1(&t0, &pk.t1)
 	pk.t1.PackT1(pk.t1p[:])

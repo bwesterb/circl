@@ -11,7 +11,7 @@ func reduceLe2Q(x uint32) uint32 {
 	return x2 + (x1 << 13) - x1
 }
 
-// Returns x mod q
+// Returns x mod q.
 func modQ(x uint32) uint32 {
 	return le2qModQ(reduceLe2Q(x))
 }
@@ -23,7 +23,7 @@ func montReduceLe2Q(x uint64) uint32 {
 	return uint32((x + m*uint64(Q)) >> 32)
 }
 
-// Returns x mod q for 0 ≤ x < 2q
+// Returns x mod q for 0 ≤ x < 2q.
 func le2qModQ(x uint32) uint32 {
 	x -= Q
 	mask := uint32(int32(x) >> 31) // mask is 2^32-1 if x was neg.; 0 otherwise
@@ -54,7 +54,7 @@ func power2round(a uint32) (a0plusQ, a1 uint32) {
 // Splits 0 ≤ a < Q into a0 and a1 with a = a1*α + a0 with -α/2 < a0 ≤ α/2,
 // except for when we would have a1 = (Q-1)/α = 16 in which case a1=0 is taken
 // and -α/2 ≤ a0 < 0.  Returns a0 + Q.  Note 0 ≤ a1 ≤ 15.
-// (Note α = 2*γ2 = γ1 with the chosen parameters of Dilithium.)
+// Note α = 2*γ2 = γ1 with the chosen parameters of Dilithium.
 func decompose(a uint32) (a0plusQ, a1 uint32) {
 	// Finds 0 ≤ t < 1.5α with t = a mod α.  (Recall α=2^19 - 2^9.)
 	t := int32(a & 0x7ffff)

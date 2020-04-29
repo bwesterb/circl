@@ -1,14 +1,15 @@
 package internal
 
 const (
-	SeedSize = 32
-	N        = 256
-	Q        = 8380417 // 2^23 - 2^13 + 1
-	QBits    = 23
-	D        = 14
-	Gamma1   = (Q - 1) / 16
-	Gamma2   = Gamma1 / 2 // = Alpha/2
-	Alpha    = 2 * Gamma2 // = Gamma1
+	SeedSize      = 32
+	N             = 256
+	Q             = 8380417 // 2^23 - 2^13 + 1
+	QBits         = 23
+	D             = 14
+	TwoToTheDmOne = 1 << (D - 1)
+	Gamma1        = (Q - 1) / 16
+	Gamma2        = Gamma1 / 2 // = Alpha/2
+	Alpha         = 2 * Gamma2 // = Gamma1
 
 	// Size of T1 packed.  (Note that the formula is not valid in general.)
 	PolyT1Size = (N * (QBits - D)) / 8

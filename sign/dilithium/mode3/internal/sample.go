@@ -45,10 +45,10 @@ func PolyDeriveUniform(p *common.Poly, seed *[32]byte, nonce uint16) {
 		copy(iv[:32], seed[:])
 		iv[32] = uint8(nonce)
 		iv[33] = uint8(nonce >> 8)
-		h.Write(iv[:])
+		h.Write(iv[:]) //nolint:errcheck
 
 		for i < common.N {
-			h.Read(buf[:168])
+			h.Read(buf[:168]) //nolint:errcheck
 			sample()
 		}
 	}
@@ -107,10 +107,12 @@ func PolyDeriveUniformLeqEta(p *common.Poly, seed *[32]byte, nonce uint16) {
 		copy(iv[:32], seed[:])
 		iv[32] = uint8(nonce)
 		iv[33] = uint8(nonce >> 8)
-		h.Write(iv[:]) // 168 is SHAKE-128 rate
+
+		// 168 is SHAKE-128 rate
+		h.Write(iv[:]) //nolint:errcheck
 
 		for i < common.N {
-			h.Read(buf[:168])
+			h.Read(buf[:168]) //nolint:errcheck
 			sample()
 		}
 	}
@@ -120,7 +122,7 @@ func PolyDeriveUniformLeqEta(p *common.Poly, seed *[32]byte, nonce uint16) {
 // given seed and nonce.
 //
 // p will not be normalized, but have coefficients in the
-// interval (q-γ1,q+γ1)
+// interval (q-γ1,q+γ1).
 func PolyDeriveUniformLeGamma1(p *common.Poly, seed *[48]byte, nonce uint16) {
 	// Assumes γ1 is less than 2^20.
 	var length, i int
@@ -167,10 +169,10 @@ func PolyDeriveUniformLeGamma1(p *common.Poly, seed *[48]byte, nonce uint16) {
 		copy(iv[:48], seed[:])
 		iv[48] = uint8(nonce)
 		iv[49] = uint8(nonce >> 8)
-		h.Write(iv[:])
+		h.Write(iv[:]) // nolint:errcheck
 
 		for i < common.N {
-			h.Read(buf[bufOffset : bufOffset+136])
+			h.Read(buf[bufOffset : bufOffset+136]) //nolint:errcheck
 			sample()
 
 			bufOffset++
@@ -196,9 +198,9 @@ func PolyDeriveUniformB60(p *common.Poly, seed *[48]byte, w1 *VecK) {
 	w1.PackLe16(w1Packed[:])
 
 	h := shake.NewShake256()
-	h.Write(seed[:])
-	h.Write(w1Packed[:])
-	h.Read(buf[:])
+	h.Write(seed[:])     // nolint:errcheck
+	h.Write(w1Packed[:]) //nolint:errcheck
+	h.Read(buf[:])       //nolint:errcheck
 
 	// Essentially we generate a sequence of 60 ones or minus ones,
 	// prepend 196 zeroes and shuffle the concatenation using the
@@ -216,7 +218,7 @@ func PolyDeriveUniformB60(p *common.Poly, seed *[48]byte, w1 *VecK) {
 		// rejection sampling.
 		for {
 			if bufOff >= 136 {
-				h.Read(buf[:])
+				h.Read(buf[:]) //nolint:errcheck
 				bufOff = 0
 			}
 

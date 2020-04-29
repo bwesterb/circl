@@ -32,7 +32,6 @@ func PolyPackLeqEta(p *common.Poly, buf []byte) {
 				(byte(common.Q+Eta-p[j+7]) << 5))
 			j += 8
 		}
-
 	} else {
 		panic("eta not supported")
 	}

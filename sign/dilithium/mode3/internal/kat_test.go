@@ -39,7 +39,7 @@ func (g *DRBG) incV() {
 	}
 }
 
-// AES256_CTR_DRBG_Update(pd, &g.key, &g.v)
+// AES256_CTR_DRBG_Update(pd, &g.key, &g.v).
 func (g *DRBG) update(pd *[48]byte) {
 	var buf [48]byte
 	b, _ := aes.NewCipher(g.key[:])
@@ -56,13 +56,13 @@ func (g *DRBG) update(pd *[48]byte) {
 	copy(g.v[:], buf[32:])
 }
 
-// randombyte_init(seed, NULL, 256)
+// randombyte_init(seed, NULL, 256).
 func NewDRBG(seed *[48]byte) (g DRBG) {
 	g.update(seed)
 	return
 }
 
-// randombytes
+// randombytes.
 func (g *DRBG) Fill(x []byte) {
 	var block [16]byte
 

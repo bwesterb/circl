@@ -81,5 +81,3 @@ func TestPolyPackLeGamma1(t *testing.T) {
 		}
 	}
 }
-
-// TODO Test (Un)Hint

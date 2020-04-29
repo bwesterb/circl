@@ -10,7 +10,7 @@ type VecL [L]common.Poly
 // A vector of L polynomials
 type VecK [K]common.Poly
 
-// Normalize the polynomials in this vector
+// Normalize the polynomials in this vector.
 func (v *VecL) Normalize() {
 	for i := 0; i < L; i++ {
 		v[i].Normalize()
@@ -105,7 +105,7 @@ func (v *VecL) UnpackLeGamma1(buf []byte) {
 	}
 }
 
-// Normalize the polynomials in this vector
+// Normalize the polynomials in this vector.
 func (v *VecK) Normalize() {
 	for i := 0; i < K; i++ {
 		v[i].Normalize()
