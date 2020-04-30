@@ -3,45 +3,10 @@ package internal
 import (
 	"testing"
 
-	"github.com/cloudflare/circl/internal/shake"
 	common "github.com/cloudflare/circl/sign/dilithium/internal"
 )
 
 // Tests specific to the current mode
-
-func hash(in []byte) [16]byte {
-	var ret [16]byte
-	h := shake.NewShake256()
-	h.Write(in)    // nolint:errcheck
-	h.Read(ret[:]) // nolint:errcheck
-	return ret
-}
-
-func TestNewKeyFromSeed(t *testing.T) {
-	var seed [common.SeedSize]byte
-	var pkp [PublicKeySize]byte
-	var skp [PrivateKeySize]byte
-	pk, sk := NewKeyFromSeed(&seed)
-	pk.Pack(&pkp)
-	sk.Pack(&skp)
-
-	// Generated with reference implementation.
-	ehpk := [16]byte{
-		183, 37, 211, 31, 183, 9, 102, 79, 133, 135,
-		226, 251, 106, 96, 254, 128,
-	}
-	ehsk := [16]byte{
-		164, 79, 207, 31, 67, 209, 36, 134, 92, 99,
-		203, 243, 129, 163, 183, 235,
-	}
-
-	if hash(pkp[:]) != ehpk {
-		t.Fatalf("pk not ok")
-	}
-	if hash(skp[:]) != ehsk {
-		t.Fatalf("sk not ok")
-	}
-}
 
 func TestVectorDeriveUniformLeqEta(t *testing.T) {
 	var p common.Poly

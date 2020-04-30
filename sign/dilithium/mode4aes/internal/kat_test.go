@@ -1,1 +1,0 @@
-../../mode3/internal/kat_test.go

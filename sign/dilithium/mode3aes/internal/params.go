@@ -1,5 +1,7 @@
 package internal
 
+import common "github.com/cloudflare/circl/sign/dilithium/internal"
+
 const (
 	Name           = "Dilithium3-AES"
 	UseAES         = true
@@ -12,4 +14,7 @@ const (
 	DoubleEtaBits  = 4
 	Beta           = 275
 	Omega          = 96
+	// Size of a packed polynomial of norm ≤η.
+	// (Note that the  formula is not valid in general.)
+	PolyLeqEtaSize = (common.N * DoubleEtaBits) / 8
 )

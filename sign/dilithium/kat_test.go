@@ -1,4 +1,4 @@
-package internal
+package dilithium
 
 // Code to generate the NIST "PQCsignKAT" test vectors.
 // See PQCsignKAT_sign.c and randombytes.c in the reference implementation.
@@ -81,17 +81,31 @@ func (g *DRBG) Fill(x []byte) {
 }
 
 func TestPQCgenKATSign(t *testing.T) {
+	for _, m := range []katMode{
+		mode1Impl{}, mode1aesImpl{},
+		mode2Impl{}, mode2aesImpl{},
+		mode3Impl{}, mode3aesImpl{},
+		mode4Impl{}, mode4aesImpl{},
+	} {
+		m := m
+		t.Run(m.Name(), func(*testing.T) { testPQCgenKATSign(t, m) })
+	}
+}
+
+type katMode interface {
+	Mode
+	NewKeyFromExpandedSeed(*[96]byte) (PublicKey, PrivateKey)
+}
+
+func testPQCgenKATSign(t *testing.T, m katMode) {
 	var seed [48]byte
 	var eseed [96]byte
-	var ppk [PublicKeySize]byte
-	var psk [PrivateKeySize]byte
-	var sig [SignatureSize]byte
 	for i := 0; i < 48; i++ {
 		seed[i] = byte(i)
 	}
 	f := sha256.New()
 	g := NewDRBG(&seed)
-	fmt.Fprintf(f, "# %s\n\n", Name)
+	fmt.Fprintf(f, "# %s\n\n", m.Name())
 	for i := 0; i < 100; i++ {
 		mlen := 33 * (i + 1)
 		g.Fill(seed[:])
@@ -103,16 +117,16 @@ func TestPQCgenKATSign(t *testing.T) {
 		fmt.Fprintf(f, "msg = %X\n", msg)
 		g2 := NewDRBG(&seed)
 		g2.Fill(eseed[:])
-		pk, sk := NewKeyFromExpandedSeed(&eseed)
-		pk.Pack(&ppk)
-		sk.Pack(&psk)
+		pk, sk := m.NewKeyFromExpandedSeed(&eseed)
+		ppk := pk.Bytes()
+		psk := sk.Bytes()
 		fmt.Fprintf(f, "pk = %X\n", ppk)
 		fmt.Fprintf(f, "sk = %X\n", psk)
-		fmt.Fprintf(f, "smlen = %d\n", mlen+SignatureSize)
-		SignTo(sk, msg[:], sig[:])
+		fmt.Fprintf(f, "smlen = %d\n", mlen+m.SignatureSize())
+		sig := m.Sign(sk, msg[:])
 		fmt.Fprintf(f, "sm = %X%X\n\n", sig, msg)
 	}
-	if fmt.Sprintf("%x", f.Sum(nil)) != ExpectedHashes[Name] {
+	if fmt.Sprintf("%x", f.Sum(nil)) != ExpectedHashes[m.Name()] {
 		t.Fatal()
 	}
 }

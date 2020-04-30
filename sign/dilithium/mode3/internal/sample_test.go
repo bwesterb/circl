@@ -7,6 +7,13 @@ import (
 	common "github.com/cloudflare/circl/sign/dilithium/internal"
 )
 
+// Checks whether p is normalized.  Only used in tests.
+func PolyNormalized(p *common.Poly) bool {
+	p2 := *p
+	p2.Normalize()
+	return p2 == *p
+}
+
 func TestVectorDeriveUniform(t *testing.T) {
 	var p, p2 common.Poly
 	var seed [32]byte

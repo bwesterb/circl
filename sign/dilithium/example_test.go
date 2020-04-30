@@ -21,7 +21,7 @@ func Example() {
 
 	// Alternatively one could simply write
 	//
-	//  mode := dilithium.Mode3
+	mode = dilithium.Mode3
 
 	// Generates a keypair.
 	pk, sk, err := mode.GenerateKey(nil)
