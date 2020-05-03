@@ -18,7 +18,7 @@ func modQ(x uint32) uint32 {
 
 // For x R ≤ q 2^32, find y ≤ 2q with y = x mod q.
 func montReduceLe2Q(x uint64) uint32 {
-	// 4236238847 = -(q^-1) mod R = 2^32
+	// 4236238847 = -(q^-1) mod 2^32
 	m := (x * 4236238847) & 0xffffffff
 	return uint32((x + m*uint64(Q)) >> 32)
 }

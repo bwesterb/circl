@@ -108,7 +108,7 @@ var InvZetas = [N]uint32{
 // Assumes the coefficients are in Montgomery representation and bounded
 // by 2*Q.  The resulting coefficients are again in Montgomery representation,
 // but are only bounded bt 18*Q.
-func (p *Poly) NTT() {
+func (p *Poly) ntt_generic() {
 	// Writing z := zeta for our root of unity zeta := 1753, note z^256=-1
 	// (otherwise the order of z wouldn't be 512) and so
 	//

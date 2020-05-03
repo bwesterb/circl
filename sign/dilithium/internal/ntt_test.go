@@ -39,6 +39,13 @@ func TestNTT(t *testing.T) {
 	}
 }
 
+func BenchmarkGenericNTT(b *testing.B) {
+	var p Poly
+	for i := 0; i < b.N; i++ {
+		p.ntt_generic()
+	}
+}
+
 func BenchmarkNTT(b *testing.B) {
 	var p Poly
 	for i := 0; i < b.N; i++ {
