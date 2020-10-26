@@ -13,7 +13,7 @@ import (
 )
 
 // XXX align Poly on 16 bytes such that we can use aligned moves
-// XXX ensure Zetas and InvZetas are 16 byte aligned
+// XXX ensure Zetas are 16 byte aligned
 
 func broadcastImm16(c int16, out Op) {
 	tmp1 := GP32()
